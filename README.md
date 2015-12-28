@@ -1,1 +1,3 @@
 # SHU-DataScience
+First project for data castle competition...
+Come on, boys!
