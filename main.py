@@ -124,34 +124,35 @@ def extratreeclfTest(X,Y):
     
 
 def xgb_clf(X, Y, test_data,test_label):
+    random_seed = 1225
     dtrain = xgb.DMatrix(X,label=Y)
     dtest = xgb.DMatrix(test_data,label=test_label)
     param={
     'booster':'gbtree',
     'objective': 'binary:logistic',
     'early_stopping_rounds':100,
-    'scale_pos_weight': 1400.0/13458.0,
+    'scale_pos_weight': 1200.0/13458.0,
         'eval_metric': 'auc',
     'gamma':0.1,
-    'max_depth':8,
+    'max_depth':6,
     'lambda':550,
         'subsample':0.7,
         'colsample_bytree':0.4,
         'min_child_weight':3,
         'eta': 0.02,
-    'seed':'random_seed',
+    'seed':random_seed,
     'nthread':7
     }
 
 
     watchlist = [(dtest,'eval'),(dtrain,'train')]
-    num_round = 1000
+    num_round = 10000
     bst = xgb.train(param, dtrain, num_round,watchlist)
     preds = bst.predict(dtest)
     labels = dtest.get_label()
     err = sum(1 for i in range(len(preds)) if int(preds[i] > 0.5) != labels[i]) / float(len(preds))
     print("err:{}".format(err))
-    bst.save_model('./model/xgb_1000.model')
+    bst.save_model('./model/xgb_10001.model')
     print "Finished!"
     #xgb.plot_importance(bst)
     return preds
@@ -171,8 +172,9 @@ def valid_test(train_x,train_label,test_x,test_label):
     xgb_clf(train_x,train_label,test_x, test_label)
     
 def train():
+   
     total = 15000
-    train_num = 10000 
+    train_num = 13000 
     test_num = total - train_num
     
     src_x = load_data("./data/train_x.csv")
@@ -180,7 +182,7 @@ def train():
     print("The demension of load src_x: m={},n={}".format(m,n))
     src_y = load_data("./data/train_y.csv")
     features_type = np.array(load_data("./data/features_type.csv"))    
-    #src_x = del_category_data(src_x, features_type)
+    src_x = del_category_data(src_x, features_type)
     m,n = src_x.shape
     print("The demension of after del src_x is: m={},n={}".format(m,n))    
     train_x = np.array(src_x)[0:train_num,1:n]
@@ -200,28 +202,25 @@ def test():
     print("Start detect....")
     src_test_data = load_data("./data/test_x.csv")
     features_type = np.array(load_data("./data/features_type.csv"))
-    #src_test_data = del_category_data(src_test_data, features_type)
+    src_test_data = del_category_data(src_test_data, features_type)
     test_data = np.array(src_test_data)[:,1:-1]
-    test_id = np.array(src_test_data)[:,0]
+    test_id = np.array(src_test_data,dtype=np.int)[:,0]
     bst = xgb.Booster({'nthread':4})
-    bst.load_model("./model/xgb_1000.model")
+    bst.load_model("./model/xgb_10001.model")
+    
+    #xgb.plot_tree(bst,num_trees=2)
+   
     #normalized_test_data = preprocessing.normalize(test_data)    
     dtest = xgb.DMatrix(test_data)
     pre = bst.predict(dtest)
-    result = []
-    for i in range(len(pre)):
-        if pre[i] > 0.5:
-            result.append(1)
-        else:
-            result.append(0)
-    data = {'uid':test_id,'score':result}
+    data = {'uid':test_id,'score':pre}
     save_result = pd.DataFrame(data,columns = ['uid','score'])    
-    save_result.to_csv('./result/xgb_result_1000.csv',index=False,encoding='utf-8')
+    save_result.to_csv('./result/xgb_result_10001.csv',index=False,encoding='utf-8')
     print("Finished!")
     
 if __name__ == '__main__':
-    train()
-    #test()    
+    #train()
+    test()    
     
 
     
